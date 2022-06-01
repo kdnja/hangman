@@ -13,16 +13,24 @@ struct Letter {
     revealed: bool,
 }
 
+enum GameProgress {
+    InProgress,
+    Won,
+    Lost,
+}
+
 fn main() {
     let mut turns_left = ALLOWED_ATTEMPTS;
     let selected_word = select_word();
     let mut letters = create_letters(&selected_word);
 
+    println!("\nWelcome to Hangman!");
+
     loop {
-        println!("You have {} turns left.", turns_left);
+        println!("\nYou have {} turns left.", turns_left);
         display_progress(&letters);
 
-        println!("Please enter a letter to guess:");
+        println!("\nPlease enter a letter to guess:");
         let user_char = read_user_input_character();
 
         /* Exit if the user enters an asterisk */
@@ -31,8 +39,8 @@ fn main() {
             break;
         }
 
-        /* Updates the 'revealed' state of each letter. 
-        If the user guessed a correct letter, 
+        /* Updates the 'revealed' state of each letter.
+        If the user guessed a correct letter,
         'at_least_one_revealed' is changed to true */
         let mut at_least_one_revealed = false;
         for letter in letters.iter_mut() {
@@ -46,9 +54,22 @@ fn main() {
         if !at_least_one_revealed {
             turns_left -= 1;
         }
-    }
 
-    println!("The selected word was {}.", selected_word);
+        match check_progress(turns_left, &letters) {
+            GameProgress::InProgress => continue,
+            GameProgress::Won => {
+                println!(
+                    "\nCongratulations, you won! The word was {}.",
+                    selected_word
+                );
+                break;
+            }
+            GameProgress::Lost => {
+                println!("\nSorry, you lost! The word was {}.", selected_word);
+                break;
+            }
+        }
+    }
 }
 
 fn select_word() -> String {
@@ -120,4 +141,28 @@ fn read_user_input_character() -> char {
             return '*';
         }
     }
+}
+
+fn check_progress(turns_left: u8, letters: &Vec<Letter>) -> GameProgress {
+    /* Determine if all letters have been revealed */
+    let mut all_revealed = true;
+
+    /* If one letter is not revealed, then set 'all_revealed to false */
+    for letter in letters {
+        if !letter.revealed {
+            all_revealed = false;
+        }
+    }
+
+    /* If all letters are revealed, then they win the game */
+    if all_revealed {
+        return GameProgress::Won;
+    }
+
+    /* If you have turns and at least one is not revealed, continue the game */
+    if turns_left > 0 {
+        return GameProgress::InProgress;
+    }
+    /* Otherwise, you lose the game */
+    return GameProgress::Lost;
 }
